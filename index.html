@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="ms" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Tempahan Makmal Komputer - Sekolah</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            delima: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js for Reports & Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles for Print & Scrollbar -->
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-sky-500 selection:text-white">
+
+  <div id="offlineBanner" class="hidden bg-amber-500 text-white text-xs font-semibold py-1 px-4 text-center">
+    <i data-lucide="wifi-off" class="inline w-3.5 h-3.5 mr-1"></i>
+    Sambungan internet terputus. Sistem beroperasi secara luar talian dan akan menyegerak semula apabila terhubung.
+  </div>
+
+  <header class="bg-white shadow-sm sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+
+        <div class="flex items-center gap-3.5">
+          <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center">
+            <img src="https://lh3.googleusercontent.com/d/19sMt_aOnM9FAUTpgTXhHCEtubvbUx2Wr" alt="Logo SK Taman Bukit Maluri" class="w-10 h-10 object-contain drop-shadow-sm">
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold text-slate-900 leading-none" id="headerLabName">Makmal Komputer Bestari</h1>
+              <span id="roleBadge" class="bg-sky-100 text-sky-800 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">Akses Terbuka</span>
+            </div>
+            <p class="text-xs text-sky-700 font-semibold mt-1 border-l-2 border-sky-300 pl-1.5" id="headerSchoolName">SK TAMAN BUKIT MALURI</p>
+          </div>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-6">
+          <div class="text-right">
+            <div id="digitalClock" class="text-base font-bold text-slate-800 tabular-nums">00:00:00 AM</div>
+            <div id="digitalDate" class="text-xs text-slate-500">Isnin, 1 Januari 2026</div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button id="adminLogoutBtn" onclick="exitAdmin()" class="hidden bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold px-3 py-1.5 rounded-md transition-all">
+              KELUAR ADMIN
+            </button>
+            <span id="versionTrigger" onclick="checkAdminClick()" class="text-xs font-bold text-slate-400 cursor-pointer select-none px-2 py-1 hover:bg-slate-100 rounded-md">v1.0</span>
+          </div>
+        </div>
+
+        <div class="flex items-center md:hidden">
+          <button onclick="toggleMobileMenu()" class="p-2 rounded-md text-slate-500 hover:bg-slate-100">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden md:hidden bg-white border-b border-slate-200 px-4 py-3">
+      <div onclick="checkAdminClick()" class="text-xs font-bold text-slate-400 cursor-pointer select-none text-center py-2">v1.0</div>
+    </div>
+
+    <nav class="bg-slate-50/80 border-t border-slate-200 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto py-2 scrollbar-none" id="mainNavTabs">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active bg-sky-600 text-white shadow-sm flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </button>
+        <button onclick="switchTab('calendar')" id="tab-calendar" class="nav-tab text-slate-600 hover:bg-slate-100 flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+          <span>Jadual Tempahan</span>
+        </button>
+        <button onclick="switchTab('list')" id="tab-list" class="nav-tab text-slate-600 hover:bg-slate-100 flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all">
+          <i data-lucide="list-filter" class="w-4 h-4"></i>
+          <span>Senarai Tempahan</span>
+        </button>
+        <button onclick="switchTab('reports')" id="tab-reports" class="nav-tab text-slate-600 hover:bg-slate-100 flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Laporan & Analitik</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8" id="mainContent">
+    <section id="view-dashboard" class="view-section space-y-6">
+      <div class="bg-gradient-to-r from-sky-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 opacity-10 text-white">
+          <i data-lucide="layout" class="w-64 h-64"></i>
+        </div>
+        <div class="relative z-10 max-w-2xl">
+          <span class="bg-white/20 text-white text-xs font-medium px-3 py-1 rounded-full backdrop-blur-sm">Selamat Datang</span>
+          <h2 class="text-2xl sm:text-3xl font-bold mt-2" id="welcomeTeacherTitle">Portal Tempahan Makmal Komputer</h2>
+          <p class="text-sky-100 text-xs sm:text-sm mt-1">Tempah slot Makmal Komputer secara dalam talian dengan mudah dan semak ketersediaan peralatan masa nyata.</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button onclick="switchTab('calendar')" class="bg-white text-sky-700 hover:bg-sky-50 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm transition-all shadow-sm flex items-center space-x-2">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Buat Tempahan Baru</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-semibold text-slate-500">Tempahan Minggu Ini</span>
+            <span class="p-2 bg-sky-50 text-sky-600 rounded-xl"><i data-lucide="calendar-check" class="w-5 h-5"></i></span>
+          </div>
+          <div class="mt-3">
+            <div class="text-2xl font-bold text-slate-900" id="statTotalWeek">0</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-semibold text-slate-500">Slot Kosong</span>
+            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><i data-lucide="clock" class="w-5 h-5"></i></span>
+          </div>
+          <div class="mt-3">
+            <div class="text-2xl font-bold text-emerald-600" id="statFreeSlots">0</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-semibold text-slate-500">Slot Digunakan</span>
+            <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i data-lucide="user-check" class="w-5 h-5"></i></span>
+          </div>
+          <div class="mt-3">
+            <div class="text-2xl font-bold text-indigo-600" id="statUsedSlots">0</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-semibold text-slate-500">Kadar Penggunaan</span>
+            <span class="p-2 bg-purple-50 text-purple-600 rounded-xl"><i data-lucide="pie-chart" class="w-5 h-5"></i></span>
+          </div>
+          <div class="mt-3">
+            <div class="text-2xl font-bold text-purple-600" id="statUsageRate">0%</div>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="statProgressBar" class="bg-purple-600 h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Jadual Penggunaan Hari Ini</h3>
+              <p class="text-xs text-slate-500" id="todayScheduleSubtitle">Ringkasan penggunaan Makmal Komputer hari ini</p>
+            </div>
+            <button onclick="switchTab('calendar')" class="text-xs text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1">
+              <span>Buka Jadual Penuh</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div id="todayBookingsList" class="space-y-3 min-h-[220px]"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-slate-800 text-base">Status Menunggu Kelulusan</h3>
+            <span id="pendingCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <div id="pendingApprovalsList" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-calendar" class="view-section hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center space-x-2 w-full md:w-auto justify-between md:justify-start">
+          <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+            <button onclick="navigateWeek(-1)" class="p-1.5 hover:bg-white rounded-lg transition-all text-slate-600" title="Minggu Sebelum">
+              <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            <button onclick="resetToCurrentWeek()" class="px-3 py-1 bg-white shadow-sm text-xs font-bold text-slate-800 rounded-lg">
+              Minggu Semasa
+            </button>
+            <button onclick="navigateWeek(1)" class="p-1.5 hover:bg-white rounded-lg transition-all text-slate-600" title="Minggu Seterusnya">
+              <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <span class="text-sm font-bold text-slate-800" id="calendarWeekRangeLabel"></span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          <select id="calendarSubjectFilter" onchange="renderCalendar()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="ALL">Semua Subjek</option>
+            <option value="Sains">Sains</option>
+            <option value="Matematik">Matematik</option>
+            <option value="Bahasa Melayu">Bahasa Melayu</option>
+            <option value="Bahasa Inggeris">Bahasa Inggeris</option>
+            <option value="RBT">RBT / ASK</option>
+          </select>
+
+          <button id="adminBlockBtn" onclick="blockDatePrompt()" class="hidden bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl items-center space-x-1.5 shadow-sm transition-all">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span>Block Tarikh</span>
+          </button>
+          
+          <button onclick="openBookingModal()" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-sm transition-all">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tempah Slot</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="grid grid-cols-7 bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-700 sticky top-16 z-20">
+          <div class="p-3 text-center border-r border-slate-200 bg-slate-100 text-slate-500">Masa</div>
+          <div class="p-3 text-center border-r border-slate-200 day-header" id="header-Mon">Isnin <span class="block text-[10px] font-normal text-slate-500" id="date-Mon">--</span></div>
+          <div class="p-3 text-center border-r border-slate-200 day-header" id="header-Tue">Selasa <span class="block text-[10px] font-normal text-slate-500" id="date-Tue">--</span></div>
+          <div class="p-3 text-center border-r border-slate-200 day-header" id="header-Wed">Rabu <span class="block text-[10px] font-normal text-slate-500" id="date-Wed">--</span></div>
+          <div class="p-3 text-center border-r border-slate-200 day-header" id="header-Thu">Khamis <span class="block text-[10px] font-normal text-slate-500" id="date-Thu">--</span></div>
+          <div class="p-3 text-center border-r border-slate-200 day-header" id="header-Fri">Jumaat <span class="block text-[10px] font-normal text-slate-500" id="date-Fri">--</span></div>
+          <div class="p-3 text-center day-header" id="header-Sat">Sabtu <span class="block text-[10px] font-normal text-slate-500" id="date-Sat">--</span></div>
+        </div>
+        <div class="overflow-y-auto max-h-[600px] relative" id="timetableGrid"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-100 p-3 rounded-xl gap-2">
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-white border border-slate-300 rounded"></span> Slot Kosong</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-emerald-500 rounded"></span> Tempahan Diluluskan</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-amber-400 rounded"></span> Menunggu Kelulusan</span>
+        </div>
+        <div>* Klik pada mana-mana slot kosong untuk membuat tempahan baru.</div>
+      </div>
+    </section>
+
+    <section id="view-list" class="view-section hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="relative w-full md:w-80">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+            <input type="text" id="searchInput" onkeyup="applyListFilters()" placeholder="Cari nama guru, subjek, kelas..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all shadow-sm">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+              <span>Eksport Excel</span>
+            </button>
+
+            <button onclick="printBookingList()" class="bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Cetak PDF</span>
+            </button>
+            <button onclick="openBookingModal()" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition-all">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Tempah Baru</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto" id="printArea">
+        <table class="w-full text-left text-xs sm:text-sm text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+            <tr>
+              <th class="p-3.5">Tarikh & Hari</th>
+              <th class="p-3.5">Masa</th>
+              <th class="p-3.5">Guru</th>
+              <th class="p-3.5">Kelas & Subjek</th>
+              <th class="p-3.5">Murid</th>
+              <th class="p-3.5">Status</th>
+              <th class="p-3.5 no-print text-right">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody id="bookingTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-reports" class="view-section hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Laporan & Analitik Penggunaan</h2>
+          <p class="text-xs text-slate-500">Statistik terperinci penggunaan Makmal Komputer bagi tujuan pemantauan.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-bold text-slate-800 text-sm">Penggunaan Mengikut Subjek / Panitia</h3>
+          <div class="h-64">
+            <canvas id="chartSubject"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-bold text-slate-800 text-sm">Kekerapan Tempahan Mengikut Hari</h3>
+          <div class="h-64">
+            <canvas id="chartDay"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="bookingModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 relative overflow-hidden border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 bg-sky-100 text-sky-600 rounded-xl">
+            <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+          </div>
+          <h3 class="font-bold text-slate-900 text-base" id="modalTitle">Tempahan Slot Makmal</h3>
+        </div>
+        <button type="button" onclick="closeBookingModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="bookingForm" onsubmit="handleSaveBooking(event)" class="space-y-3 text-xs sm:text-sm">
+        <input type="hidden" id="bookingId">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Nama Guru / Pemohon</label>
+            <input type="text" id="inputTeacherName" placeholder="Contoh: Cikgu Ali" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-700" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">No. Telefon (Pilihan)</label>
+            <input type="tel" id="inputPhone" placeholder="012-3456789" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tarikh</label>
+            <input type="date" id="inputDate" onchange="updateDayFromDate(this.value)" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Hari</label>
+            <input type="text" id="inputDay" class="w-full p-2 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-700" readonly>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Masa Mula</label>
+            <select id="inputStartTime" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Masa Tamat</label>
+            <select id="inputEndTime" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required></select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Kelas / Kumpulan</label>
+            <input type="text" id="inputClass" placeholder="Contoh: 5 Bestari" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Subjek / Tujuan</label>
+            <select id="inputSubject" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required>
+              <option value="Sains">Sains</option>
+              <option value="Matematik">Matematik</option>
+              <option value="Bahasa Melayu">Bahasa Melayu</option>
+              <option value="Bahasa Inggeris">Bahasa Inggeris</option>
+              <option value="RBT">RBT / ASK / ICT</option>
+              <option value="Lain-lain">Lain-lain Sesi</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Bilangan Murid / Peserta</label>
+          <input type="number" id="inputStudentCount" value="30" min="1" max="50" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Catatan / Peralatan Diperlukan</label>
+          <textarea id="inputNotes" rows="2" placeholder="Contoh: Memerlukan 30 unit PC dan projektor" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeBookingModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all">
+            Batal
+          </button>
+          <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition-all shadow-md">
+            Simpan Tempahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4 border border-slate-100">
+      <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 class="font-bold text-slate-900 text-base" id="confirmTitle">Pengesahan Tindakan</h3>
+        <p class="text-xs text-slate-500 mt-1" id="confirmMessage">Adakah anda pasti ingin meneruskan tindakan ini?</p>
+      </div>
+      <div class="flex justify-center space-x-3 pt-2">
+        <button onclick="closeConfirmModal(false)" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Batal</button>
+        <button id="confirmBtnYes" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md">Ya, Teruskan</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TIME_SLOTS = ["07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"];
+    const DAYS = ["Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
+    let appState = { user: { role: 'Guru' }, currentTab: 'dashboard', currentWeekOffset: 0, bookings: [], settings: { approvalMode: 'AUTO' } };
+
+    window.onload = function() {
+      startDigitalClock();
+      populateTimeOptions();
+      renderDashboard();
+      renderCalendar();
+      renderBookingList();
+      initCharts();
+      lucide.createIcons();
+    };
+
+    function switchTab(tabName) {
+      appState.currentTab = tabName;
+      document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-tab').forEach(el => {
+        el.classList.remove('bg-sky-600', 'text-white', 'shadow-sm');
+        el.classList.add('text-slate-600', 'hover:bg-slate-100');
+      });
+      const targetView = document.getElementById(`view-${tabName}`);
+      if (targetView) targetView.classList.remove('hidden');
+      const targetTabBtn = document.getElementById(`tab-${tabName}`);
+      if (targetTabBtn) {
+        targetTabBtn.classList.add('bg-sky-600', 'text-white', 'shadow-sm');
+        targetTabBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+      }
+      if (tabName === 'dashboard') renderDashboard();
+      if (tabName === 'calendar') renderCalendar();
+      if (tabName === 'list') renderBookingList();
+      if (tabName === 'reports') updateCharts();
+      lucide.createIcons();
+    }
+
+    function toggleMobileMenu() {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
+    }
+
+    let adminClickCount = 0;
+    let adminClickTimer;
+
+    function checkAdminClick() {
+      adminClickCount++;
+      clearTimeout(adminClickTimer);
+      if (adminClickCount >= 5) {
+        let pass = prompt("Sila masukkan kata laluan Admin:");
+        if (pass === "cikgu123") {
+          appState.user.role = 'Admin ICT';
+          document.getElementById('adminBlockBtn').classList.remove('hidden');
+          document.getElementById('adminBlockBtn').classList.add('flex');
+          const badge = document.getElementById('roleBadge');
+          badge.className = "bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse shadow-md";
+          badge.innerText = "MOD ADMIN AKTIF";
+          document.getElementById('adminLogoutBtn').classList.remove('hidden');
+          document.getElementById('versionTrigger').classList.add('hidden');
+          showToast("Paparan Admin ICT diaktifkan!", "success");
+          renderDashboard();
+          renderBookingList();
+        } else if (pass !== null) {
+          showToast("Kata laluan salah!", "error");
+        }
+        adminClickCount = 0;
+      } else {
+        adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+      }
+    }
+
+    function renderDashboard() {
+      const activeBookings = appState.bookings.filter(b => b.status === 'Diluluskan');
+      const pendingBookings = appState.bookings.filter(b => b.status === 'Menunggu Kelulusan');
+      const totalWeekBookings = activeBookings.length;
+      const totalSlotsInWeek = 100;
+      const freeSlots = totalSlotsInWeek - totalWeekBookings;
+      const usageRate = totalWeekBookings > 0 ? Math.round((totalWeekBookings / totalSlotsInWeek) * 100) : 0;
+
+      document.getElementById('statTotalWeek').innerText = totalWeekBookings;
+      document.getElementById('statFreeSlots').innerText = freeSlots;
+      document.getElementById('statUsedSlots').innerText = totalWeekBookings;
+      document.getElementById('statUsageRate').innerText = `${usageRate}%`;
+      document.getElementById('statProgressBar').style.width = `${usageRate}%`;
+
+      const todayListContainer = document.getElementById('todayBookingsList');
+      todayListContainer.innerHTML = '';
+      if (activeBookings.length === 0) {
+        todayListContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Tiada tempahan berjadual untuk masa ini.</div>`;
+      } else {
+        activeBookings.forEach(b => {
+          todayListContainer.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div>
+                <h4 class="font-bold text-slate-800 text-xs">${b.teacherName}</h4>
+                <p class="text-[11px] text-slate-500">${b.className} • ${b.subject}</p>
+              </div>
+              <div class="p-2 bg-sky-100 text-sky-700 font-bold rounded-lg text-xs">${b.startTime} - ${b.endTime}</div>
+            </div>
+          `;
+        });
+      }
+
+      const pendingContainer = document.getElementById('pendingApprovalsList');
+      pendingContainer.innerHTML = '';
+      document.getElementById('pendingCountBadge').innerText = pendingBookings.length;
+
+      if (pendingBookings.length === 0) {
+        pendingContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Tiada tempahan menunggu kelulusan.</div>`;
+      } else {
+        pendingBookings.forEach(b => {
+          const isAdmin = appState.user.role === 'Admin ICT';
+          pendingContainer.innerHTML += `
+            <div class="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h4 class="font-bold text-slate-800 text-xs">${b.teacherName}</h4>
+                  <p class="text-[11px] text-amber-900">${b.day}, ${b.date} (${b.startTime})</p>
+                </div>
+                <span class="bg-amber-200 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Menunggu</span>
+              </div>
+              ${isAdmin ? `
+                <div class="flex justify-end space-x-2 pt-2 border-t border-amber-200/60">
+                  <button onclick="approveBooking('${b.id}', false)" class="bg-red-50 text-red-600 text-[11px] font-bold px-2.5 py-1 rounded-lg">Tolak</button>
+                  <button onclick="approveBooking('${b.id}', true)" class="bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">Luluskan</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+      }
+      lucide.createIcons();
+    }
+
+    function navigateWeek(direction) { appState.currentWeekOffset += direction; renderCalendar(); }
+    function resetToCurrentWeek() { appState.currentWeekOffset = 0; renderCalendar(); }
+
+    function renderCalendar() {
+      const timetableGrid = document.getElementById('timetableGrid');
+      timetableGrid.innerHTML = '';
+      const dates = getDatesOfWeek(appState.currentWeekOffset);
+      document.getElementById('calendarWeekRangeLabel').innerText = `${dates[0]} hingga ${dates[4]}`;
+      DAYS.forEach((day, index) => {
+        document.getElementById(`date-${getDayCode(day)}`).innerText = dates[index];
+      });
+
+      const selectedSubject = document.getElementById('calendarSubjectFilter').value;
+      TIME_SLOTS.slice(0, -1).forEach((slotTime) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'grid grid-cols-7 border-b border-slate-100 text-xs min-h-[48px]';
+        rowEl.innerHTML = `<div class="p-2 border-r border-slate-200 bg-slate-50 text-slate-500 font-semibold flex items-center justify-center text-[11px]">${slotTime}</div>`;
+
+        DAYS.forEach((day, dayIdx) => {
+          const slotDate = dates[dayIdx];
+          const booking = appState.bookings.find(b => {
+            if (b.day !== day || b.status === 'Dibatalkan') return false;
+            if (selectedSubject !== 'ALL' && b.subject !== selectedSubject) return false;
+            return slotTime >= b.startTime && slotTime < b.endTime;
+          });
+
+          const slotCell = document.createElement('div');
+          slotCell.className = 'p-1 border-r border-slate-200 relative transition-all group';
+
+          if (booking) {
+            let colorClass = 'bg-emerald-100 text-emerald-900 border border-emerald-300 hover:bg-emerald-200';
+            if (booking.status === 'Menunggu Kelulusan') colorClass = 'bg-amber-100 text-amber-900 border-2 border-dashed border-amber-400';
+
+            slotCell.innerHTML = `
+              <div class="w-full h-full p-1.5 rounded-lg ${colorClass} border shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="font-bold truncate text-[11px]">${booking.teacherName}</div>
+                  <div class="text-[10px] opacity-90 truncate">${booking.className}</div>
+                </div>
+              </div>
+            `;
+          } else {
+            slotCell.className += ' hover:bg-sky-50/80 cursor-pointer flex items-center justify-center';
+            slotCell.onclick = () => openBookingModal(day, slotDate, slotTime);
+            slotCell.innerHTML = `<span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 font-medium">+ Tempah</span>`;
+          }
+
+          rowEl.appendChild(slotCell);
+        });
+        timetableGrid.appendChild(rowEl);
+      });
+    }
+
+    function renderBookingList() { applyListFilters(); }
+
+    function applyListFilters() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const isAdmin = appState.user.role === 'Admin ICT';
+      let filtered = appState.bookings.filter(b => {
+        return b.teacherName.toLowerCase().includes(query) || b.subject.toLowerCase().includes(query) || b.className.toLowerCase().includes(query);
+      });
+
+      const tbody = document.getElementById('bookingTableBody');
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">Tiada rekod tempahan ditemui.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(b => {
+        let statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Diluluskan</span>`;
+        if (b.status === 'Menunggu Kelulusan') statusBadge = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Menunggu</span>`;
+        else if (b.status === 'Dibatalkan') statusBadge = `<span class="bg-red-100 text-red-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Dibatalkan</span>`;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50 transition-all">
+            <td class="p-3.5 font-semibold text-slate-800">${b.date} <span class="text-xs text-slate-400 font-normal">(${b.day})</span></td>
+            <td class="p-3.5 font-medium text-slate-700">${b.startTime} - ${b.endTime}</td>
+            <td class="p-3.5 font-bold text-slate-900">${b.teacherName}</td>
+            <td class="p-3.5">${b.className} <span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[11px] ml-1">${b.subject}</span></td>
+            <td class="p-3.5">${b.studentCount} Murid</td>
+            <td class="p-3.5">${statusBadge}</td>
+            <td class="p-3.5 no-print text-right space-x-1">
+              ${isAdmin && b.status !== 'Dibatalkan' ? `
+                <button onclick="cancelBooking('${b.id}')" class="p-1.5 hover:bg-red-100 text-red-600 rounded-lg" title="Batalkan"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      });
+      lucide.createIcons();
+    }
+
+    function populateTimeOptions() {
+      const startSelect = document.getElementById('inputStartTime');
+      const endSelect = document.getElementById('inputEndTime');
+      TIME_SLOTS.forEach(time => {
+        startSelect.innerHTML += `<option value="${time}">${time}</option>`;
+        endSelect.innerHTML += `<option value="${time}">${time}</option>`;
+      });
+      startSelect.value = "08:00";
+      endSelect.value = "09:00";
+    }
+
+    function openBookingModal(day = 'Isnin', dateStr = null, startTime = '08:00') {
+      document.getElementById('bookingForm').reset();
+      document.getElementById('bookingId').value = '';
+      const todayStr = dateStr || new Date().toISOString().split('T')[0];
+      document.getElementById('inputTeacherName').value = '';
+      document.getElementById('inputDate').value = todayStr;
+      document.getElementById('inputDay').value = day;
+      document.getElementById('inputStartTime').value = startTime;
+      const startIdx = TIME_SLOTS.indexOf(startTime);
+      if (startIdx !== -1 && startIdx + 2 < TIME_SLOTS.length) {
+        document.getElementById('inputEndTime').value = TIME_SLOTS[startIdx + 2];
+      }
+      document.getElementById('bookingModal').classList.remove('hidden');
+    }
+
+    function closeBookingModal() { document.getElementById('bookingModal').classList.add('hidden'); }
+
+    function updateDayFromDate(dateVal) {
+      if (!dateVal) return;
+      const dayNames = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
+      document.getElementById('inputDay').value = dayNames[new Date(dateVal).getDay()] || "Isnin";
+    }
+
+    function handleSaveBooking(e) {
+      e.preventDefault();
+      const teacherName = document.getElementById('inputTeacherName').value;
+      const date = document.getElementById('inputDate').value;
+      const day = document.getElementById('inputDay').value;
+      const startTime = document.getElementById('inputStartTime').value;
+      const endTime = document.getElementById('inputEndTime').value;
+      const className = document.getElementById('inputClass').value;
+      const subject = document.getElementById('inputSubject').value;
+      const studentCount = parseInt(document.getElementById('inputStudentCount').value);
+
+      if (startTime >= endTime) {
+        showToast('Masa mula mestilah lebih awal daripada masa tamat.', 'error');
+        return;
+      }
+
+      const conflict = appState.bookings.find(b => b.status !== 'Dibatalkan' && b.date === date && (startTime < b.endTime && endTime > b.startTime));
+      if (conflict) {
+        showToast(`Pertindihan Tempahan! Slot ini telah ditempah oleh ${conflict.teacherName}.`, 'error');
+        return;
+      }
+
+      const initialStatus = appState.user.role === 'Admin ICT' ? 'Diluluskan' : 'Menunggu Kelulusan';
+
+      appState.bookings.push({
+        id: `bk-${Date.now()}`,
+        teacherName,
+        date,
+        day,
+        startTime,
+        endTime,
+        className,
+        subject,
+        studentCount,
+        status: initialStatus
+      });
+
+      showToast('Tempahan berjaya dihantar!', 'success');
+      closeBookingModal();
+      renderDashboard();
+      renderCalendar();
+      renderBookingList();
+      updateCharts();
+    }
+
+    function approveBooking(bookingId, isApproved) {
+      const idx = appState.bookings.findIndex(b => b.id === bookingId);
+      if (idx !== -1) {
+        appState.bookings[idx].status = isApproved ? 'Diluluskan' : 'Dibatalkan';
+        showToast(`Tempahan ${isApproved ? 'diluluskan' : 'ditolak'}.`, 'info');
+        renderDashboard();
+        renderCalendar();
+        renderBookingList();
+      }
+    }
+
+    function cancelBooking(bookingId) {
+      confirmAction('Batalkan Tempahan', 'Adakah anda pasti ingin membatalkan tempahan ini?', () => {
+        const idx = appState.bookings.findIndex(b => b.id === bookingId);
+        if (idx !== -1) {
+          appState.bookings[idx].status = 'Dibatalkan';
+          showToast('Tempahan dibatalkan.', 'info');
+          renderDashboard();
+          renderCalendar();
+          renderBookingList();
+        }
+      });
+    }
+
+    function startDigitalClock() {
+      setInterval(() => {
+        const now = new Date();
+        document.getElementById('digitalClock').innerText = now.toLocaleTimeString('ms-MY');
+        document.getElementById('digitalDate').innerText = now.toLocaleDateString('ms-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      }, 1000);
+    }
+
+    function getDatesOfWeek(weekOffset = 0) {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1) + (weekOffset * 7);
+      const dates = [];
+      for (let i = 0; i < 6; i++) {
+        dates.push(new Date(now.setDate(diff + i)).toISOString().split('T')[0]);
+      }
+      return dates;
+    }
+
+    function getDayCode(dayName) {
+      const map = { 'Isnin': 'Mon', 'Selasa': 'Tue', 'Rabu': 'Wed', 'Khamis': 'Thu', 'Jumaat': 'Fri', 'Sabtu': 'Sat' };
+      return map[dayName] || 'Mon';
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      let bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+      toast.className = `${bg} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+      setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+
+    function confirmAction(title, message, onConfirm) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = message;
+      document.getElementById('confirmModal').classList.remove('hidden');
+      document.getElementById('confirmBtnYes').onclick = () => {
+        document.getElementById('confirmModal').classList.add('hidden');
+        onConfirm();
+      };
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    function printBookingList() { window.print(); }
+
+    let chartSubjectInst = null, chartDayInst = null;
+    function initCharts() {
+      const ctxSubject = document.getElementById('chartSubject').getContext('2d');
+      chartSubjectInst = new Chart(ctxSubject, {
+        type: 'doughnut',
+        data: { labels: ['Sains', 'Matematik', 'Lain-lain'], datasets: [{ data: [1, 1, 1], backgroundColor: ['#10b981', '#0284c7', '#f59e0b'] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+      const ctxDay = document.getElementById('chartDay').getContext('2d');
+      chartDayInst = new Chart(ctxDay, {
+        type: 'bar',
+        data: { labels: DAYS, datasets: [{ label: 'Tempahan', data: [0, 0, 0, 0, 0, 0], backgroundColor: '#0284c7' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function updateCharts() {
+      if (chartSubjectInst) chartSubjectInst.update();
+      if (chartDayInst) chartDayInst.update();
+    }
+
+    function blockDatePrompt() {
+      const date = prompt("Masukkan tarikh untuk dikunci (Format: YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+      if (!date) return;
+      const dayNames = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
+      const day = dayNames[new Date(date).getDay()];
+      if(day === "Ahad") {
+        showToast("Tarikh Ahad tidak perlu dikunci.", "error");
+        return;
+      }
+      const isFullDay = confirm("Klik 'OK' untuk kunci SEPENUH HARI.\\nKlik 'Cancel' untuk kunci MASA TERTENTU sahaja.");
+      let startTime = '07:00';
+      let endTime = '17:00';
+      let msg = `Seluruh slot pada ${date} berjaya dikunci.`;
+      if (!isFullDay) {
+        startTime = prompt("Masukkan masa mula (Contoh: 08:00):", "08:00");
+        endTime = prompt("Masukkan masa tamat (Contoh: 10:30):", "10:30");
+        if(!startTime || !endTime) return;
+        msg = `Slot ${startTime}-${endTime} pada ${date} berjaya dikunci.`;
+      }
+      appState.bookings.push({
+        id: `bk-${Date.now()}`,
+        teacherName: 'DIKUNCI (ADMIN)',
+        date,
+        day,
+        startTime,
+        endTime,
+        className: '-',
+        subject: 'Lain-lain',
+        studentCount: 0,
+        status: 'Diluluskan'
+      });
+      showToast(msg, 'success');
+      renderDashboard();
+      renderCalendar();
+      renderBookingList();
+    }
+
+    function exitAdmin() {
+      appState.user.role = 'Guru';
+      document.getElementById('adminBlockBtn').classList.add('hidden');
+      document.getElementById('adminBlockBtn').classList.remove('flex');
+      document.getElementById('adminLogoutBtn').classList.add('hidden');
+      document.getElementById('versionTrigger').classList.remove('hidden');
+      const badge = document.getElementById('roleBadge');
+      badge.className = "bg-sky-100 text-sky-800 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider";
+      badge.innerText = "AKSES TERBUKA";
+      showToast("Log keluar berjaya. Kembali ke paparan umum.", "info");
+      renderDashboard();
+      renderBookingList();
+    }/* ==========================================================================
+       EKSPORT REKOD KE EXCEL / CSV
+       ========================================================================== */
+    function exportToExcel() {
+      if (!appState.bookings || appState.bookings.length === 0) {
+        if (typeof showToast === 'function') {
+          showToast("Tiada rekod tempahan untuk dieksport!", "warning");
+        } else {
+          alert("Tiada rekod tempahan untuk dieksport!");
+        }
+        return;
+      }
+
+      // UTF-8 BOM supaya ejaan dan aksara khas dipaparkan betul dalam Excel
+      let csvContent = "\uFEFF"; 
+      csvContent += "Tarikh,Hari,Masa Mula,Masa Tamat,Nama Guru,No Telefon,Kelas,Subjek,Bil Murid,Status,Catatan\n";
+
+      appState.bookings.forEach(b => {
+        let row = [
+          `"${b.date || ''}"`,
+          `"${b.day || ''}"`,
+          `"${b.startTime || ''}"`,
+          `"${b.endTime || ''}"`,
+          `"${(b.teacherName || '').replace(/"/g, '""')}"`,
+          `"${b.phone || ''}"`,
+          `"${(b.className || '').replace(/"/g, '""')}"`,
+          `"${b.subject || ''}"`,
+          `"${b.studentCount || ''}"`,
+          `"${b.status || ''}"`,
+          `"${(b.notes || '').replace(/"/g, '""')}"`
+        ].join(",");
+        csvContent += row + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const today = new Date().toISOString().split('T')[0];
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Rekod_Tempahan_Makmal_${today}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (typeof showToast === 'function') {
+        showToast("Fail Excel berjaya dimuat turun!", "success");
+      }
+    }
+  </script>
+</body>
+</html>
