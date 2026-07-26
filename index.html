@@ -501,15 +501,46 @@
     const DAYS = ["Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
     let appState = { user: { role: 'Guru' }, currentTab: 'dashboard', currentWeekOffset: 0, bookings: [], settings: { approvalMode: 'AUTO' } };
 
-    /* --- FUNGSI AUTO SIMPAN (LOCAL STORAGE) --- */
-    function saveData() {
+    /* --- FUNGSI PANGKALAN DATA (GOOGLE SHEETS) --- */
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwA3VnIVM00Sfpd1vcH-YH5b17iNMVNxlwOTDIrH6vHwBwA64CmgJfbTMb8Y7Hf7vHh/exec";
+
+    async function saveData() {
+      // Backup di phone/PC sendiri supaya sistem terasa laju
       localStorage.setItem('makmalAppBookings', JSON.stringify(appState.bookings));
+      
+      // Hantar data ke Google Sheets di belakang tabir (tanpa ubah muka depan URL)
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(appState.bookings)
+        });
+      } catch (error) {
+        console.error("Gagal berhubung dengan Google Sheets", error);
+      }
     }
 
-    function loadData() {
+    async function loadData() {
+      // 1. Tunjuk jadual dari memori tempatan dahulu supaya tak nampak kosong
       const saved = localStorage.getItem('makmalAppBookings');
-      if (saved) {
-        appState.bookings = JSON.parse(saved);
+      if (saved) appState.bookings = JSON.parse(saved);
+      
+      // 2. Tarik data rasmi dari Google Sheets (jika ada tempahan dari guru lain)
+      try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+        
+        // Pastikan format nombor pelajar dibaca dengan betul
+        data.forEach(b => b.studentCount = parseInt(b.studentCount) || 0);
+        
+        appState.bookings = data;
+        
+        // 3. Kemas kini (refresh) semua paparan jadual dan graf
+        if (typeof renderDashboard === "function") renderDashboard();
+        if (typeof renderCalendar === "function") renderCalendar();
+        if (typeof renderBookingList === "function") renderBookingList();
+        if (typeof updateCharts === "function") updateCharts();
+      } catch (error) {
+        console.error("Gagal muat turun data dari Google Sheets", error);
       }
     }
 
