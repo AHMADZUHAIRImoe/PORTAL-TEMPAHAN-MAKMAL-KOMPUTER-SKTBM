@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Mobile Web App & Theme Color -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#0284c7">
   <title>Sistem Tempahan Makmal Komputer - Sekolah</title>
   
   <!-- Fonts & Icons -->
@@ -119,7 +124,26 @@
       </div>
     </div>
 
-    <div id="mobileMenu" class="hidden md:hidden bg-white border-b border-slate-200 px-4 py-3">
+    <!-- Mobile Drawer Menu -->
+  <div id="mobileMenu" class="hidden md:hidden bg-white border-b border-slate-200 px-4 py-3 space-y-2 transition-all shadow-md">
+    <button onclick="switchTab('dashboard'); toggleMobileMenu()" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100">
+      <i data-lucide="layout-dashboard" class="w-4 h-4 text-sky-600"></i>
+      <span>Dashboard</span>
+    </button>
+    <button onclick="switchTab('calendar'); toggleMobileMenu()" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100">
+      <i data-lucide="calendar" class="w-4 h-4 text-sky-600"></i>
+      <span>Jadual Tempahan</span>
+    </button>
+    <button onclick="switchTab('list'); toggleMobileMenu()" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100">
+      <i data-lucide="list-filter" class="w-4 h-4 text-sky-600"></i>
+      <span>Senarai Tempahan</span>
+    </button>
+    <button onclick="switchTab('reports'); toggleMobileMenu()" class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100">
+      <i data-lucide="bar-chart-3" class="w-4 h-4 text-sky-600"></i>
+      <span>Laporan & Analitik</span>
+    </button>
+    <div onclick="checkAdminClick()" class="text-[10px] font-bold text-slate-400 cursor-pointer select-none text-center pt-2 border-t border-slate-100">v1.0</div>
+  </div>
       <div onclick="checkAdminClick()" class="text-xs font-bold text-slate-400 cursor-pointer select-none text-center py-2">v1.0</div>
     </div>
 
@@ -477,7 +501,20 @@
     const DAYS = ["Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
     let appState = { user: { role: 'Guru' }, currentTab: 'dashboard', currentWeekOffset: 0, bookings: [], settings: { approvalMode: 'AUTO' } };
 
+    /* --- FUNGSI AUTO SIMPAN (LOCAL STORAGE) --- */
+    function saveData() {
+      localStorage.setItem('makmalAppBookings', JSON.stringify(appState.bookings));
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem('makmalAppBookings');
+      if (saved) {
+        appState.bookings = JSON.parse(saved);
+      }
+    }
+
     window.onload = function() {
+      loadData(); // Muat turun data yang tersimpan setiap kali web dibuka
       startDigitalClock();
       populateTimeOptions();
       renderDashboard();
@@ -532,6 +569,7 @@
           showToast("Paparan Admin ICT diaktifkan!", "success");
           renderDashboard();
           renderBookingList();
+          renderCalendar();
         } else if (pass !== null) {
           showToast("Kata laluan salah!", "error");
         }
@@ -565,7 +603,7 @@
             <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <div>
                 <h4 class="font-bold text-slate-800 text-xs">${b.teacherName}</h4>
-                <p class="text-[11px] text-slate-500">${b.className} • ${b.subject}</p>
+                <p class="text-[11px] text-slate-500">${b.date} • ${b.className} • ${b.subject}</p>
               </div>
               <div class="p-2 bg-sky-100 text-sky-700 font-bold rounded-lg text-xs">${b.startTime} - ${b.endTime}</div>
             </div>
@@ -625,7 +663,9 @@
         DAYS.forEach((day, dayIdx) => {
           const slotDate = dates[dayIdx];
           const booking = appState.bookings.find(b => {
-            if (b.day !== day || b.status === 'Dibatalkan') return false;
+            if (b.status === 'Dibatalkan') return false;
+            // PEMBETULAN: Periksa tarikh yang tepat! Bukan hari sahaja.
+            if (b.date !== slotDate) return false;
             if (selectedSubject !== 'ALL' && b.subject !== selectedSubject) return false;
             return slotTime >= b.startTime && slotTime < b.endTime;
           });
@@ -638,7 +678,7 @@
             if (booking.status === 'Menunggu Kelulusan') colorClass = 'bg-amber-100 text-amber-900 border-2 border-dashed border-amber-400';
 
             slotCell.innerHTML = `
-              <div class="w-full h-full p-1.5 rounded-lg ${colorClass} border shadow-sm flex flex-col justify-between">
+              <div class="w-full h-full p-1.5 rounded-lg ${colorClass} border shadow-sm flex flex-col justify-between cursor-default">
                 <div>
                   <div class="font-bold truncate text-[11px]">${booking.teacherName}</div>
                   <div class="text-[10px] opacity-90 truncate">${booking.className}</div>
@@ -665,6 +705,9 @@
       let filtered = appState.bookings.filter(b => {
         return b.teacherName.toLowerCase().includes(query) || b.subject.toLowerCase().includes(query) || b.className.toLowerCase().includes(query);
       });
+
+      // Susun ikut yang terbaharu
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       const tbody = document.getElementById('bookingTableBody');
       tbody.innerHTML = '';
@@ -769,6 +812,8 @@
         status: initialStatus
       });
 
+      saveData(); // SIMPAN DATA!
+
       showToast('Tempahan berjaya dihantar!', 'success');
       closeBookingModal();
       renderDashboard();
@@ -781,6 +826,7 @@
       const idx = appState.bookings.findIndex(b => b.id === bookingId);
       if (idx !== -1) {
         appState.bookings[idx].status = isApproved ? 'Diluluskan' : 'Dibatalkan';
+        saveData(); // SIMPAN DATA!
         showToast(`Tempahan ${isApproved ? 'diluluskan' : 'ditolak'}.`, 'info');
         renderDashboard();
         renderCalendar();
@@ -793,6 +839,7 @@
         const idx = appState.bookings.findIndex(b => b.id === bookingId);
         if (idx !== -1) {
           appState.bookings[idx].status = 'Dibatalkan';
+          saveData(); // SIMPAN DATA!
           showToast('Tempahan dibatalkan.', 'info');
           renderDashboard();
           renderCalendar();
@@ -809,13 +856,18 @@
       }, 1000);
     }
 
+    // PEMBETULAN: Fungsi tarikh (Timezone Malaysia selamat)
     function getDatesOfWeek(weekOffset = 0) {
       const now = new Date();
       const day = now.getDay();
       const diff = now.getDate() - day + (day === 0 ? -6 : 1) + (weekOffset * 7);
       const dates = [];
       for (let i = 0; i < 6; i++) {
-        dates.push(new Date(now.setDate(diff + i)).toISOString().split('T')[0]);
+        const targetDate = new Date(now.getFullYear(), now.getMonth(), diff + i);
+        const y = targetDate.getFullYear();
+        const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const d = String(targetDate.getDate()).padStart(2, '0');
+        dates.push(`${y}-${m}-${d}`);
       }
       return dates;
     }
@@ -882,7 +934,7 @@
         showToast("Tarikh Ahad tidak perlu dikunci.", "error");
         return;
       }
-      const isFullDay = confirm("Klik 'OK' untuk kunci SEPENUH HARI.\\nKlik 'Cancel' untuk kunci MASA TERTENTU sahaja.");
+      const isFullDay = confirm("Klik 'OK' untuk kunci SEPENUH HARI.\nKlik 'Cancel' untuk kunci MASA TERTENTU sahaja.");
       let startTime = '07:00';
       let endTime = '17:00';
       let msg = `Seluruh slot pada ${date} berjaya dikunci.`;
@@ -904,6 +956,7 @@
         studentCount: 0,
         status: 'Diluluskan'
       });
+      saveData(); // SIMPAN DATA!
       showToast(msg, 'success');
       renderDashboard();
       renderCalendar();
@@ -922,7 +975,10 @@
       showToast("Log keluar berjaya. Kembali ke paparan umum.", "info");
       renderDashboard();
       renderBookingList();
-    }/* ==========================================================================
+      renderCalendar();
+    }
+
+    /* ==========================================================================
        EKSPORT REKOD KE EXCEL / CSV
        ========================================================================== */
     function exportToExcel() {
@@ -935,7 +991,6 @@
         return;
       }
 
-      // UTF-8 BOM supaya ejaan dan aksara khas dipaparkan betul dalam Excel
       let csvContent = "\uFEFF"; 
       csvContent += "Tarikh,Hari,Masa Mula,Masa Tamat,Nama Guru,No Telefon,Kelas,Subjek,Bil Murid,Status,Catatan\n";
 
